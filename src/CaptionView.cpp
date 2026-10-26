@@ -28,6 +28,17 @@ void CaptionView::setSignalState(const QString& text, const QColor& color) {
     update();
 }
 
+void CaptionView::setVideoFrame(const QImage& frame, double pixelAspect) {
+    video_ = frame;
+    pixelAspect_ = pixelAspect;
+    update();
+}
+
+void CaptionView::clearVideo() {
+    video_ = QImage();
+    update();
+}
+
 QRect CaptionView::screenRect() const {
     const QRect available = rect().adjusted(8, 8, -8, -8);
     QSize size(16, 9);
@@ -43,6 +54,17 @@ void CaptionView::paintEvent(QPaintEvent*) {
 
     const QRect screen = screenRect();
     p.fillRect(screen, QColor(16, 16, 16));
+
+    if (!video_.isNull()) {
+        // Fit the picture with its display aspect ratio (pixel aspect, e.g. 1440x1080 anamorphic -> 16:9).
+        QSizeF display(video_.width() * pixelAspect_, video_.height());
+        display.scale(screen.size(), Qt::KeepAspectRatio);
+        QRectF target(QPointF(0, 0), display);
+        target.moveCenter(QRectF(screen).center());
+        p.fillRect(screen, Qt::black);
+        p.setRenderHint(QPainter::SmoothPixmapTransform);
+        p.drawImage(target, video_);
+    }
 
     const QImage& canvas = engine_->screen();
     p.setRenderHint(QPainter::SmoothPixmapTransform);

@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Network)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Network Multimedia)
 qt_standard_project_setup()
 
 # libaribcaption is pinned and patched instead of using the system copy: upstream wraps a line as soon
@@ -29,6 +29,14 @@ FetchContent_Declare(libaribcaption
 )
 FetchContent_MakeAvailable(libaribcaption)
 
+# System FFmpeg on purpose: a PKG_CONFIG_PATH pointing to a local FFmpeg build would make the binary
+# depend on libraries that only exist on one machine.
+find_package(PkgConfig REQUIRED)
+set(_saved_pkg_config_path "$ENV{PKG_CONFIG_PATH}")
+set(ENV{PKG_CONFIG_PATH} "")
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libswscale libswresample)
+set(ENV{PKG_CONFIG_PATH} "${_saved_pkg_config_path}")
+
 qt_add_executable(arib-caption-monitor
     src/main.cpp
     src/MainWindow.cpp
@@ -38,6 +46,7 @@ qt_add_executable(arib-caption-monitor
     src/CaptionEngine.cpp
     src/CaptionView.cpp
     src/CaptionValidator.cpp
+    src/MediaPlayer.cpp
 )
 
 target_compile_options(arib-caption-monitor PRIVATE -Wall -Wextra -Wpedantic)
@@ -46,7 +55,9 @@ target_link_libraries(arib-caption-monitor PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Network
+    Qt6::Multimedia
     aribcaption::aribcaption
+    PkgConfig::FFMPEG
 )
 
 enable_testing()

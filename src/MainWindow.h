@@ -3,6 +3,7 @@
 #include "AribInspector.h"
 #include "CaptionEngine.h"
 #include "CaptionValidator.h"
+#include "MediaPlayer.h"
 #include "TsDemux.h"
 #include "UdpReceiver.h"
 
@@ -18,6 +19,7 @@ class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
+class QSlider;
 class QSpinBox;
 class QTabWidget;
 class QTreeWidget;
@@ -55,17 +57,23 @@ private:
     void fillCaptionNode(QTreeWidgetItem* root);
     void rebuildValidationTree();
     void validateLayout();
+    void updateMediaState();
+    void fillMediaNode(QTreeWidgetItem* root);
 
     UdpReceiver receiver_;
     TsDemux demux_;
     CaptionEngine engine_;
     CaptionValidator validator_;
+    MediaPlayer media_;
 
     CaptionView* view_ = nullptr;
     QSpinBox* portSpin_ = nullptr;
     QLineEdit* groupEdit_ = nullptr;
     QPushButton* connectButton_ = nullptr;
     QCheckBox* overlaysCheck_ = nullptr;
+    QCheckBox* mediaCheck_ = nullptr;
+    QCheckBox* muteCheck_ = nullptr;
+    QSlider* volumeSlider_ = nullptr;
     QTreeWidget* streamTree_ = nullptr;
     QTreeWidget* commandsTree_ = nullptr;
     QTreeWidget* validationTree_ = nullptr;

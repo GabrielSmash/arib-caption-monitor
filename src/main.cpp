@@ -7,6 +7,11 @@
 #include <QTimer>
 
 int main(int argc, char* argv[]) {
+    // Qt 6.10's PipeWire audio backend does not list Bluetooth outputs and reports the wrong default device;
+    // the PulseAudio backend (served by pipewire-pulse) follows the system default correctly.
+    if (qEnvironmentVariableIsEmpty("QT_AUDIO_BACKEND"))
+        qputenv("QT_AUDIO_BACKEND", "pulseaudio");
+
     QApplication app(argc, argv);
     QApplication::setOrganizationName("arib-caption-monitor");
     QApplication::setApplicationName("arib-caption-monitor");

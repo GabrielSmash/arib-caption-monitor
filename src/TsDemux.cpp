@@ -373,6 +373,15 @@ void TsDemux::selectCaptionPid() {
     }
 }
 
+bool TsDemux::hasAudioVideo() const {
+    static const QVector<int> types = {0x01, 0x02, 0x10, 0x1B, 0x24, 0x03, 0x04, 0x0F, 0x11, 0x81, 0x87};
+    for (const auto& pmt : pmts_)
+        for (const auto& stream : pmt.streams)
+            if (types.contains(stream.type))
+                return true;
+    return false;
+}
+
 QString TsDemux::pidUsage(int pid) const {
     if (pid == kPatPid)
         return "PAT";

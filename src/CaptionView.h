@@ -18,6 +18,8 @@ public:
     void setOverlaysVisible(bool visible);
     void setDisplayArea(const QRect& planeRect);  // null rect = unknown
     void setSignalState(const QString& text, const QColor& color);
+    void setVideoFrame(const QImage& frame, double pixelAspect);
+    void clearVideo();
 
     QSize sizeHint() const override { return {960, 540}; }
     QSize minimumSizeHint() const override { return {320, 180}; }
@@ -31,6 +33,8 @@ private:
     const CaptionEngine* engine_;
     bool overlays_ = true;
     QRect displayArea_;
+    QImage video_;
+    double pixelAspect_ = 1.0;
     QString signalText_;
     QColor signalColor_;
 };

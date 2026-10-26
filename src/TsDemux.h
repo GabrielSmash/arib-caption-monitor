@@ -75,6 +75,8 @@ public:
     quint64 totalPackets() const { return totalPackets_; }
     quint64 syncErrors() const { return syncErrors_; }
     int captionPid() const { return captionPid_; }
+    // True when a PMT announces a video or audio elementary stream.
+    bool hasAudioVideo() const;
 
     // Human readable usage of a PID, based on the tables seen so far.
     QString pidUsage(int pid) const;

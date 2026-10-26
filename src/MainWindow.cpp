@@ -13,6 +13,7 @@
 #include <QScrollBar>
 #include <QSet>
 #include <QSettings>
+#include <QSlider>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QStatusBar>
@@ -80,6 +81,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     buildUi();
 
     connect(&receiver_, &UdpReceiver::tsData, &demux_, &TsDemux::feed);
+    connect(&receiver_, &UdpReceiver::tsData, this, [this](const QByteArray& data) { media_.feed(data); });
+    connect(&demux_, &TsDemux::tablesChanged, this, &MainWindow::updateMediaState);
+    connect(&media_, &MediaPlayer::videoFrame, view_, &CaptionView::setVideoFrame);
+    connect(&media_, &MediaPlayer::stopped, view_, &CaptionView::clearVideo);
+    connect(&media_, &MediaPlayer::logMessage, this, &MainWindow::appendLog);
     connect(&demux_, &TsDemux::captionPes, this, &MainWindow::onCaptionPes);
     connect(&demux_, &TsDemux::tablesChanged, this, [this]() { validator_.checkPmt(demux_); });
     connect(&demux_, &TsDemux::captionPidChanged, this, [this](int pid) {
@@ -100,6 +106,9 @@ MainWindow::~MainWindow() {
     settings.setValue("port", portSpin_->value());
     settings.setValue("multicast", groupEdit_->text());
     settings.setValue("overlays", overlaysCheck_->isChecked());
+    settings.setValue("media", mediaCheck_->isChecked());
+    settings.setValue("volume", volumeSlider_->value());
+    settings.setValue("muted", muteCheck_->isChecked());
     settings.setValue("geometry", saveGeometry());
     settings.setValue("state", saveState());
 }
@@ -136,6 +145,25 @@ void MainWindow::buildUi() {
     overlaysCheck_ = new QCheckBox("Mostrar posicionamento");
     overlaysCheck_->setChecked(settings.value("overlays", true).toBool());
     toolbar->addWidget(overlaysCheck_);
+    toolbar->addSeparator();
+    mediaCheck_ = new QCheckBox("Vídeo e áudio");
+    mediaCheck_->setToolTip("Reproduz vídeo e áudio quando o MPEG-TS recebido trouxer esses streams");
+    mediaCheck_->setChecked(settings.value("media", true).toBool());
+    connect(mediaCheck_, &QCheckBox::toggled, this, &MainWindow::updateMediaState);
+    toolbar->addWidget(mediaCheck_);
+    toolbar->addWidget(new QLabel("  Volume "));
+    volumeSlider_ = new QSlider(Qt::Horizontal);
+    volumeSlider_->setRange(0, 100);
+    volumeSlider_->setValue(settings.value("volume", 80).toInt());
+    volumeSlider_->setMaximumWidth(120);
+    connect(volumeSlider_, &QSlider::valueChanged, this, [this](int value) { media_.setVolume(value / 100.0f); });
+    toolbar->addWidget(volumeSlider_);
+    muteCheck_ = new QCheckBox("Mudo");
+    muteCheck_->setChecked(settings.value("muted", false).toBool());
+    connect(muteCheck_, &QCheckBox::toggled, &media_, &MediaPlayer::setMuted);
+    toolbar->addWidget(muteCheck_);
+    media_.setVolume(volumeSlider_->value() / 100.0f);
+    media_.setMuted(muteCheck_->isChecked());
 
     view_ = new CaptionView(&engine_);
     view_->setOverlaysVisible(overlaysCheck_->isChecked());
@@ -244,6 +272,7 @@ void MainWindow::showAnalysisTab(int index) {
 
 void MainWindow::stopReceiving() {
     receiver_.stop();
+    media_.stop();
     connectButton_->setText("Conectar");
     portSpin_->setEnabled(true);
     groupEdit_->setEnabled(true);
@@ -560,6 +589,7 @@ void MainWindow::rebuildStreamTree() {
     fillTablesNodes(streamTree_->invisibleRootItem());
     fillPidNodes(new QTreeWidgetItem(streamTree_, {"PIDs"}));
     fillCaptionNode(new QTreeWidgetItem(streamTree_, {"Legenda ARIB (ABNT NBR 15606-1)"}));
+    fillMediaNode(new QTreeWidgetItem(streamTree_, {"Vídeo e áudio"}));
 
     for (int i = 0; i < streamTree_->topLevelItemCount(); ++i) {
         auto* item = streamTree_->topLevelItem(i);
@@ -687,4 +717,40 @@ void MainWindow::fillCaptionNode(QTreeWidgetItem* root) {
     addItem(stats, "PTS último", formatPts(lastPts_));
     if (lastPts_ != kNoPts && prevPts_ != kNoPts)
         addItem(stats, "Δ PTS", QString("%1 ms").arg((lastPts_ - prevPts_) / 90.0, 0, 'f', 0));
+}
+
+void MainWindow::updateMediaState() {
+    const bool wanted = mediaCheck_->isChecked() && receiver_.isActive() && demux_.hasAudioVideo();
+    if (wanted && !media_.isRunning()) {
+        appendLog("Mídia: PMT com vídeo/áudio, iniciando reprodução");
+        media_.start();
+    } else if (!wanted && media_.isRunning()) {
+        media_.stop();
+    }
+}
+
+void MainWindow::fillMediaNode(QTreeWidgetItem* root) {
+    if (!media_.isRunning()) {
+        root->setText(1, !mediaCheck_->isChecked() ? "desativado"
+                         : demux_.hasAudioVideo() ? "parado"
+                                                  : "sem vídeo/áudio na PMT");
+        return;
+    }
+    const MediaInfo info = media_.info();
+    root->setText(1, info.hasVideo || info.hasAudio ? "reproduzindo" : "analisando o stream…");
+    if (info.hasVideo) {
+        addItem(root, "Vídeo", QString("%1, %2×%3%4, %5 fps")
+                                   .arg(info.videoCodec)
+                                   .arg(info.videoSize.width())
+                                   .arg(info.videoSize.height())
+                                   .arg(info.interlaced ? " entrelaçado" : "")
+                                   .arg(info.frameRate, 0, 'f', 2));
+        addItem(root, "Quadros exibidos / descartados",
+                QString("%1 / %2").arg(media_.framesShown()).arg(media_.framesDropped()));
+    }
+    if (info.hasAudio) {
+        addItem(root, "Áudio", QString("%1, %2 Hz, %3 canal(is)").arg(info.audioCodec).arg(info.sampleRate).arg(info.channels));
+        addItem(root, "Latência da saída de áudio", QString("%1 ms").arg(media_.audioLatencyMs()));
+    }
+    addItem(root, "Ressincronizações do relógio", QString::number(media_.clockResets()));
 }
