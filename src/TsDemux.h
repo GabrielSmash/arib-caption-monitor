@@ -75,7 +75,7 @@ public:
     quint64 totalPackets() const { return totalPackets_; }
     quint64 syncErrors() const { return syncErrors_; }
     int captionPid() const { return captionPid_; }
-    // True when a PMT announces a video or audio elementary stream.
+    // True when a PMT announces a video or audio elementary stream and its PID is actually carrying packets.
     bool hasAudioVideo() const;
 
     // Human readable usage of a PID, based on the tables seen so far.

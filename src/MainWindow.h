@@ -3,6 +3,7 @@
 #include "AribInspector.h"
 #include "CaptionEngine.h"
 #include "CaptionValidator.h"
+#include "FileSource.h"
 #include "MediaPlayer.h"
 #include "TsDemux.h"
 #include "UdpReceiver.h"
@@ -35,10 +36,20 @@ public:
     bool initialize(QString* error);
     void setEndpoint(quint16 port, const QString& multicastGroup);
     void startReceiving();
+    bool openFile(const QString& path);
     void showAnalysisTab(int index);
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
 
 private:
     void buildUi();
+    void resetPipeline();
+    void closeFile();
+    void chooseFile();
+    bool fileMode() const { return file_.state() != FileSource::State::Closed; }
+    bool sourceActive() const { return receiver_.isActive() || file_.isActive(); }
     void toggleConnection();
     void stopReceiving();
     void clearAll();
@@ -61,6 +72,7 @@ private:
     void fillMediaNode(QTreeWidgetItem* root);
 
     UdpReceiver receiver_;
+    FileSource file_;
     TsDemux demux_;
     CaptionEngine engine_;
     CaptionValidator validator_;
@@ -70,6 +82,8 @@ private:
     QSpinBox* portSpin_ = nullptr;
     QLineEdit* groupEdit_ = nullptr;
     QPushButton* connectButton_ = nullptr;
+    QPushButton* pauseButton_ = nullptr;
+    QCheckBox* loopCheck_ = nullptr;
     QCheckBox* overlaysCheck_ = nullptr;
     QCheckBox* mediaCheck_ = nullptr;
     QCheckBox* muteCheck_ = nullptr;

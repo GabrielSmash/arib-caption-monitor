@@ -3,7 +3,10 @@
 Monitor desktop (Linux, Qt6) de legendas ARIB no padrão brasileiro (ABNT NBR 15606-1 / ISDB-Tb)
 recebidas em MPEG-TS por UDP.
 
+- Recebe MPEG-TS por UDP (unicast/multicast, RTP detectado) **ou reproduz arquivos** `.ts`/`.m2ts`
+  (188, 192 e 204 bytes) em tempo real, com o ritmo dado pelo PCR (ou PTS, em arquivos só de legenda).
 - Indica se os pacotes estão chegando (pkt/s, bitrate, origem, tempo desde o último datagrama).
+- Reproduz vídeo e áudio quando o stream os contém (FFmpeg do sistema + Qt Multimedia), com a legenda por cima.
 - Decodifica as legendas em tempo real com a libaribcaption (`kABNT_NBR_15606_1_Latin`), mantendo a
   tela como um receptor: `CS` limpa, statements sem `CS` se sobrepõem, posições/cores/tamanhos do emissor.
 - Painel lateral: PAT, PMT (com descritores), SDT, PIDs (pacotes, bitrate, erros de continuidade),
@@ -19,7 +22,8 @@ recebidas em MPEG-TS por UDP.
 ## Dependências
 
 ```bash
-sudo apt install build-essential cmake pkg-config qt6-base-dev libfreetype-dev libfontconfig-dev fonts-dejavu
+sudo apt install build-essential cmake pkg-config qt6-base-dev qt6-multimedia-dev libfreetype-dev libfontconfig-dev fonts-dejavu \
+    libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev
 ```
 
 A libaribcaption **não** precisa estar instalada: o CMake baixa uma versão fixa do upstream, aplica
@@ -39,6 +43,7 @@ ctest --test-dir build        # layout (quebra de linha) e validação, com veto
 ```bash
 ./build/arib-caption-monitor                  # porta salva (padrão 1526), unicast
 ./build/arib-caption-monitor -p 1526 -m 239.1.1.1   # multicast
+./build/arib-caption-monitor --file gravacao.ts       # arquivo (ou botão "Abrir .ts…" / arrastar para a janela)
 ```
 
 O stream pode ser UDP puro ou RTP (detectado automaticamente). O PID da legenda é escolhido pela PMT
@@ -53,3 +58,6 @@ Para testes automatizados sem tela: `QT_QPA_PLATFORM=offscreen ./build/arib-capt
   receptores reais; a libaribcaption original quebraria imediatamente.
 - `SCR` (scroll) é exibido no painel, mas a libaribcaption ignora o comando ao desenhar.
 - As legendas são exibidas na chegada (monitor ao vivo); o PTS é mostrado, mas não usado para atrasar a exibição.
+- Arquivos: sem busca (seek); "Repetir" volta ao início. Vídeo entrelaçado é exibido sem desentrelaçar.
+- O app força o backend de áudio PulseAudio do Qt (`QT_AUDIO_BACKEND`), porque o backend PipeWire do Qt 6.10
+  não lista saídas Bluetooth.

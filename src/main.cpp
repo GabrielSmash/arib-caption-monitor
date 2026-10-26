@@ -23,8 +23,9 @@ int main(int argc, char* argv[]) {
     QCommandLineOption groupOption({"m", "multicast"}, "Grupo multicast (opcional).", "endereço");
     QCommandLineOption snapshotOption("snapshot", "Salva uma captura da janela e encerra (teste).", "arquivo.png");
     QCommandLineOption snapshotAfterOption("snapshot-after", "Segundos até a captura (padrão 10).", "segundos", "10");
+    QCommandLineOption fileOption({"f", "file"}, "Reproduz um arquivo MPEG-TS em vez de escutar UDP.", "arquivo.ts");
     QCommandLineOption tabOption("tab", "Aba do painel ao abrir (0 MPEG-TS, 1 Validação, 2 Comandos, 3 Log).", "índice");
-    parser.addOptions({portOption, groupOption, snapshotOption, snapshotAfterOption, tabOption});
+    parser.addOptions({portOption, groupOption, snapshotOption, snapshotAfterOption, tabOption, fileOption});
     parser.process(app);
 
     MainWindow window;
@@ -38,7 +39,10 @@ int main(int argc, char* argv[]) {
     if (parser.isSet(tabOption))
         window.showAnalysisTab(parser.value(tabOption).toInt());
     window.show();
-    window.startReceiving();
+    if (parser.isSet(fileOption))
+        window.openFile(parser.value(fileOption));
+    else
+        window.startReceiving();
 
     if (parser.isSet(snapshotOption)) {
         const QString path = parser.value(snapshotOption);

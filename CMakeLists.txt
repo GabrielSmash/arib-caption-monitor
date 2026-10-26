@@ -47,6 +47,7 @@ qt_add_executable(arib-caption-monitor
     src/CaptionView.cpp
     src/CaptionValidator.cpp
     src/MediaPlayer.cpp
+    src/FileSource.cpp
 )
 
 target_compile_options(arib-caption-monitor PRIVATE -Wall -Wextra -Wpedantic)

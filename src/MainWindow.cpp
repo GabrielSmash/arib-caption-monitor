@@ -4,6 +4,11 @@
 
 #include <QCheckBox>
 #include <QDockWidget>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QMimeData>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -82,6 +87,19 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     connect(&receiver_, &UdpReceiver::tsData, &demux_, &TsDemux::feed);
     connect(&receiver_, &UdpReceiver::tsData, this, [this](const QByteArray& data) { media_.feed(data); });
+    connect(&file_, &FileSource::tsData, &demux_, &TsDemux::feed);
+    connect(&file_, &FileSource::tsData, this, [this](const QByteArray& data) { media_.feed(data); });
+    connect(&file_, &FileSource::restarted, this, [this]() {
+        appendLog(QString("Arquivo: recomeçando (repetição %1)").arg(file_.loops()));
+        demux_.reset();
+        engine_.reset();
+    });
+    connect(&file_, &FileSource::finished, this, [this]() {
+        appendLog("Arquivo: fim");
+        media_.stop();
+        pauseButton_->setEnabled(false);
+        refresh();
+    });
     connect(&demux_, &TsDemux::tablesChanged, this, &MainWindow::updateMediaState);
     connect(&media_, &MediaPlayer::videoFrame, view_, &CaptionView::setVideoFrame);
     connect(&media_, &MediaPlayer::stopped, view_, &CaptionView::clearVideo);
@@ -109,6 +127,7 @@ MainWindow::~MainWindow() {
     settings.setValue("media", mediaCheck_->isChecked());
     settings.setValue("volume", volumeSlider_->value());
     settings.setValue("muted", muteCheck_->isChecked());
+    settings.setValue("loop", loopCheck_->isChecked());
     settings.setValue("geometry", saveGeometry());
     settings.setValue("state", saveState());
 }
@@ -141,6 +160,24 @@ void MainWindow::buildUi() {
     auto* clearButton = new QPushButton("Limpar");
     connect(clearButton, &QPushButton::clicked, this, &MainWindow::clearAll);
     toolbar->addWidget(clearButton);
+    toolbar->addSeparator();
+    auto* openButton = new QPushButton("Abrir .ts…");
+    openButton->setToolTip("Reproduz um arquivo MPEG-TS (188/192/204 bytes) em tempo real. Também dá para arrastar o arquivo para a janela.");
+    connect(openButton, &QPushButton::clicked, this, &MainWindow::chooseFile);
+    toolbar->addWidget(openButton);
+    pauseButton_ = new QPushButton("Pausar");
+    pauseButton_->setEnabled(false);
+    connect(pauseButton_, &QPushButton::clicked, this, [this]() {
+        const bool pause = file_.state() == FileSource::State::Playing;
+        file_.setPaused(pause);
+        pauseButton_->setText(pause ? "Continuar" : "Pausar");
+        refresh();
+    });
+    toolbar->addWidget(pauseButton_);
+    loopCheck_ = new QCheckBox("Repetir");
+    loopCheck_->setChecked(settings.value("loop", false).toBool());
+    connect(loopCheck_, &QCheckBox::toggled, &file_, &FileSource::setLoop);
+    toolbar->addWidget(loopCheck_);
     toolbar->addSeparator();
     overlaysCheck_ = new QCheckBox("Mostrar posicionamento");
     overlaysCheck_->setChecked(settings.value("overlays", true).toBool());
@@ -231,6 +268,7 @@ void MainWindow::buildUi() {
     statusBar()->addPermanentWidget(validationStatus_);
     statusBar()->addPermanentWidget(captionLabel_);
 
+    setAcceptDrops(true);
     resize(1500, 820);
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("state").toByteArray());
@@ -243,19 +281,13 @@ void MainWindow::setEndpoint(quint16 port, const QString& multicastGroup) {
 
 void MainWindow::startReceiving() {
     QString error;
+    closeFile();
     if (!receiver_.start(static_cast<quint16>(portSpin_->value()), groupEdit_->text(), &error)) {
         appendLog(error);
         stateLabel_->setText(error);
         return;
     }
-    demux_.reset();
-    engine_.reset();
-    validator_.reset();
-    lastManagementClock_.invalidate();
-    firstStatementClock_.invalidate();
-    rateClock_.start();
-    prevPackets_ = prevBytes_ = 0;
-    prevPidPackets_.clear();
+    resetPipeline();
     connectButton_->setText("Desconectar");
     portSpin_->setEnabled(false);
     groupEdit_->setEnabled(false);
@@ -264,6 +296,69 @@ void MainWindow::startReceiving() {
                   .arg(receiver_.multicastGroup().isEmpty() ? QString(" (unicast)")
                                                             : " multicast " + receiver_.multicastGroup()));
     refresh();
+}
+
+void MainWindow::resetPipeline() {
+    media_.stop();
+    demux_.reset();
+    engine_.reset();
+    validator_.reset();
+    lastManagementClock_.invalidate();
+    firstStatementClock_.invalidate();
+    lastPts_ = prevPts_ = INT64_MIN;
+    lastCaptionTime_ = QDateTime();
+    rateClock_.start();
+    prevPackets_ = prevBytes_ = 0;
+    prevPidPackets_.clear();
+}
+
+bool MainWindow::openFile(const QString& path) {
+    if (receiver_.isActive())
+        stopReceiving();
+    file_.setLoop(loopCheck_->isChecked());
+    QString error;
+    if (!file_.open(path, &error)) {
+        appendLog(error);
+        stateLabel_->setText(error);
+        return false;
+    }
+    resetPipeline();
+    pauseButton_->setEnabled(true);
+    pauseButton_->setText("Pausar");
+    QSettings().setValue("lastDir", QFileInfo(path).absolutePath());
+    appendLog(QString("Arquivo: %1 — pacotes de %2 bytes, relógio %3, duração %4 s")
+                  .arg(QFileInfo(path).fileName())
+                  .arg(file_.packetSize())
+                  .arg(file_.clockSource())
+                  .arg(file_.durationSeconds(), 0, 'f', 1));
+    refresh();
+    return true;
+}
+
+void MainWindow::closeFile() {
+    if (!fileMode())
+        return;
+    file_.close();
+    media_.stop();
+    pauseButton_->setEnabled(false);
+    pauseButton_->setText("Pausar");
+    appendLog("Arquivo fechado");
+}
+
+void MainWindow::chooseFile() {
+    const QString path = QFileDialog::getOpenFileName(this, "Abrir MPEG-TS", QSettings().value("lastDir").toString(),
+                                                      "MPEG-TS (*.ts *.m2ts *.mts *.trp *.tp);;Todos os arquivos (*)");
+    if (!path.isEmpty())
+        openFile(path);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+    if (event->mimeData()->hasUrls() && event->mimeData()->urls().value(0).isLocalFile())
+        event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event) {
+    openFile(event->mimeData()->urls().value(0).toLocalFile());
 }
 
 void MainWindow::showAnalysisTab(int index) {
@@ -286,6 +381,13 @@ void MainWindow::toggleConnection() {
     else
         startReceiving();
 }
+
+namespace {
+QString formatClock(double seconds) {
+    const int total = static_cast<int>(seconds);
+    return QString("%1:%2").arg(total / 60, 2, 10, QChar('0')).arg(total % 60, 2, 10, QChar('0'));
+}
+}  // namespace
 
 void MainWindow::clearAll() {
     engine_.reset();
@@ -439,7 +541,23 @@ void MainWindow::refresh() {
     const qint64 since = receiver_.msSinceLastDatagram();
     QString state;
     QColor color;
-    if (!receiver_.isActive()) {
+    const QString filePosition = QString("%1 / %2").arg(formatClock(file_.positionSeconds()), formatClock(file_.durationSeconds()));
+    if (fileMode()) {
+        switch (file_.state()) {
+            case FileSource::State::Playing:
+                state = "Arquivo " + filePosition;
+                color = QColor(40, 200, 80);
+                break;
+            case FileSource::State::Paused:
+                state = "Pausado " + filePosition;
+                color = QColor(230, 160, 30);
+                break;
+            default:
+                state = "Fim do arquivo";
+                color = QColor(120, 120, 120);
+                break;
+        }
+    } else if (!receiver_.isActive()) {
         state = "Desconectado";
         color = QColor(120, 120, 120);
     } else if (since < 0) {
@@ -454,21 +572,23 @@ void MainWindow::refresh() {
     }
     view_->setSignalState(state, color);
     stateLabel_->setText(QString("<b style='color:%1'>●</b> %2").arg(color.name(), state));
-    rateLabel_->setText(QString("  %1 pkt/s · %2 · %3 datagramas")
+    rateLabel_->setText(QString("  %1 pkt/s · %2 · %3")
                             .arg(packetsPerSecond_, 0, 'f', 0)
                             .arg(formatBitrate(bitsPerSecond_))
-                            .arg(receiver_.datagrams()));
+                            .arg(fileMode() ? QFileInfo(file_.path()).fileName()
+                                            : QString("%1 datagramas").arg(receiver_.datagrams())));
     const int pid = demux_.captionPid();
     captionLabel_->setText(QString("Legenda PID %1 · %2 legendas · última %3")
                                .arg(pid >= 0 ? hexPid(pid) : QString("—"))
                                .arg(engine_.captionsDecoded())
                                .arg(lastCaptionTime_.isValid() ? lastCaptionTime_.toString("HH:mm:ss") : "—"));
 
-    if (receiver_.isActive()) {
+    if (receiver_.isActive() || file_.state() == FileSource::State::Playing) {
         validator_.checkManagementInterval(lastManagementClock_.isValid() ? lastManagementClock_.elapsed() : -1,
                                            firstStatementClock_.isValid() ? firstStatementClock_.elapsed() : -1);
     }
 
+    updateMediaState();  // a PMT may announce A/V PIDs before (or without) their packets arriving
     rebuildStreamTree();
     rebuildValidationTree();
 }
@@ -561,7 +681,7 @@ void MainWindow::updateRates() {
         return;
 
     const quint64 packets = demux_.totalPackets();
-    const quint64 bytes = receiver_.bytes();
+    const quint64 bytes = fileMode() ? file_.bytesSent() : receiver_.bytes();
     packetsPerSecond_ = (packets - prevPackets_) / seconds;
     bitsPerSecond_ = (bytes - prevBytes_) * 8 / seconds;
     prevPackets_ = packets;
@@ -603,6 +723,24 @@ void MainWindow::rebuildStreamTree() {
 }
 
 void MainWindow::fillReceptionNode(QTreeWidgetItem* root) {
+    if (fileMode()) {
+        static const char* states[] = {"fechado", "reproduzindo", "pausado", "fim do arquivo"};
+        addItem(root, "Fonte", "Arquivo");
+        addItem(root, "Estado", states[static_cast<int>(file_.state())]);
+        addItem(root, "Arquivo", file_.path());
+        addItem(root, "Pacote", QString("%1 bytes%2").arg(file_.packetSize()).arg(file_.packetSize() == 192 ? " (M2TS)"
+                                                                               : file_.packetSize() == 204 ? " (com Reed-Solomon)"
+                                                                                                           : ""));
+        addItem(root, "Relógio", file_.clockSource());
+        addItem(root, "Posição", QString("%1 / %2").arg(formatClock(file_.positionSeconds()), formatClock(file_.durationSeconds())));
+        addItem(root, "Repetições", QString::number(file_.loops()));
+        addItem(root, "Pacotes TS", QString::number(demux_.totalPackets()));
+        addItem(root, "Taxa", QString("%1 pkt/s").arg(packetsPerSecond_, 0, 'f', 0));
+        addItem(root, "Bitrate", formatBitrate(bitsPerSecond_));
+        addItem(root, "Erros de sincronismo", QString::number(demux_.syncErrors()));
+        return;
+    }
+    addItem(root, "Fonte", "UDP");
     addItem(root, "Estado", receiver_.isActive() ? "Escutando" : "Desconectado");
     addItem(root, "Porta UDP", receiver_.isActive() ? QString::number(receiver_.port()) : "—");
     addItem(root, "Multicast", receiver_.multicastGroup().isEmpty() ? "não (unicast)" : receiver_.multicastGroup());
@@ -720,7 +858,7 @@ void MainWindow::fillCaptionNode(QTreeWidgetItem* root) {
 }
 
 void MainWindow::updateMediaState() {
-    const bool wanted = mediaCheck_->isChecked() && receiver_.isActive() && demux_.hasAudioVideo();
+    const bool wanted = mediaCheck_->isChecked() && sourceActive() && demux_.hasAudioVideo();
     if (wanted && !media_.isRunning()) {
         appendLog("Mídia: PMT com vídeo/áudio, iniciando reprodução");
         media_.start();
