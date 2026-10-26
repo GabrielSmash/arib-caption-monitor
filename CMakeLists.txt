@@ -1,0 +1,65 @@
+cmake_minimum_required(VERSION 3.25)
+project(arib-caption-monitor VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Network)
+qt_standard_project_setup()
+
+# libaribcaption is pinned and patched instead of using the system copy: upstream wraps a line as soon
+# as it is filled up to the edge of the display area, so "full line + APR" (used by Brazilian
+# broadcasters) ends up one line too low. See patches/README.md and xqq/libaribcaption#27.
+include(FetchContent)
+set(ARIBCC_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
+set(ARIBCC_USE_FREETYPE ON CACHE BOOL "" FORCE)
+set(ARIBCC_USE_FONTCONFIG ON CACHE BOOL "" FORCE)
+set(ARIBCC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(libaribcaption
+    GIT_REPOSITORY https://github.com/xqq/libaribcaption.git
+    GIT_TAG 37dde0f32652c32aa98bf92278944d1cfb2e7354
+    PATCH_COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/libaribcaption-deferred-wrap.patch
+    UPDATE_DISCONNECTED TRUE
+    SYSTEM
+)
+FetchContent_MakeAvailable(libaribcaption)
+
+qt_add_executable(arib-caption-monitor
+    src/main.cpp
+    src/MainWindow.cpp
+    src/UdpReceiver.cpp
+    src/TsDemux.cpp
+    src/AribInspector.cpp
+    src/CaptionEngine.cpp
+    src/CaptionView.cpp
+    src/CaptionValidator.cpp
+)
+
+target_compile_options(arib-caption-monitor PRIVATE -Wall -Wextra -Wpedantic)
+
+target_link_libraries(arib-caption-monitor PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Network
+    aribcaption::aribcaption
+)
+
+enable_testing()
+add_executable(test-caption-layout tests/test_caption_layout.cpp)
+target_link_libraries(test-caption-layout PRIVATE aribcaption::aribcaption)
+add_test(NAME caption-layout COMMAND test-caption-layout)
+
+qt_add_executable(test-validation
+    tests/test_validation.cpp
+    src/AribInspector.cpp
+    src/CaptionValidator.cpp
+    src/TsDemux.cpp
+)
+target_include_directories(test-validation PRIVATE src)
+target_link_libraries(test-validation PRIVATE Qt6::Core)
+add_test(NAME validation COMMAND test-validation)
