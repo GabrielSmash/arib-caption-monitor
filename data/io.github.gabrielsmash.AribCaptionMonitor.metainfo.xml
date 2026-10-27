@@ -4,16 +4,16 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>LicenseRef-proprietary</project_license>
   <name>ARIB Caption Monitor</name>
-  <summary>Monitor de legendas ARIB brasileiras em MPEG-TS</summary>
+  <summary>Monitor Brazilian ARIB captions in MPEG-TS</summary>
   <description>
     <p>
-      Recebe MPEG-TS por UDP (unicast, multicast ou RTP) ou reproduz arquivos .ts/.m2ts e exibe as legendas
-      ARIB no padrão brasileiro (ABNT NBR 15606-1 / ISDB-Tb) como um receptor, junto com vídeo e áudio.
+      Receives MPEG-TS over UDP (unicast, multicast or RTP) or plays .ts/.m2ts files and shows ARIB captions in
+      the Brazilian standard (ABNT NBR 15606-1 / ISDB-Tb) the way a receiver does, together with video and audio.
     </p>
     <ul>
-      <li>Painel com PAT, PMT, SDT, PIDs, bitrate e erros de continuidade</li>
-      <li>Comandos ARIB de cada legenda e posicionamento na tela</li>
-      <li>Validação automática do stream de legenda, com a fonte de cada regra</li>
+      <li>Panel with PAT, PMT, SDT, PIDs, bitrate and continuity errors</li>
+      <li>ARIB control codes of every caption and their position on screen</li>
+      <li>Automatic validation of the caption stream, with the source of each rule</li>
     </ul>
   </description>
   <launchable type="desktop-id">io.github.gabrielsmash.AribCaptionMonitor.desktop</launchable>

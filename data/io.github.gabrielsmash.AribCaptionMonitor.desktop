@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=ARIB Caption Monitor
-GenericName=Monitor de legendas ARIB
-Comment=Monitor de legendas ARIB (ABNT NBR 15606-1) em MPEG-TS por UDP ou arquivo
+GenericName=ARIB caption monitor
+Comment=Monitor Brazilian ARIB captions (ABNT NBR 15606-1) in MPEG-TS over UDP or from files
 Exec=arib-caption-monitor %f
 Icon=io.github.gabrielsmash.AribCaptionMonitor
 Terminal=false

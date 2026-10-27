@@ -1,21 +1,22 @@
-# Patches de dependências
+# Dependency patches
 
 ## libaribcaption-deferred-wrap.patch
 
-Base: libaribcaption `37dde0f32652c32aa98bf92278944d1cfb2e7354` (aplicado pelo CMake via FetchContent).
+Base: libaribcaption `37dde0f32652c32aa98bf92278944d1cfb2e7354` (applied by CMake through FetchContent, and by
+the Flatpak manifest).
 
-**Problema:** o decoder quebra a linha assim que um caractere preenche a linha até a borda direita da área
-de exibição (SDF). Quando o emissor envia uma linha cheia seguida de `APR` — prática usada por emissoras
-brasileiras (ex.: Globo) e pelo encoder SkylarBox — a linha seguinte desce duas posições e pode sair da área.
-Issue upstream: https://github.com/xqq/libaribcaption/issues/27
+**Problem:** the decoder wraps the line as soon as a character fills it up to the right edge of the display
+area (SDF). When the encoder sends a full line followed by `APR` — a practice used by Brazilian broadcasters
+(e.g. Globo) and by the SkylarBox encoder — the next line moves down two positions and may leave the area.
+Upstream issue: https://github.com/xqq/libaribcaption/issues/27
 
-**Correção:** depois de escrever um caractere, o avanço só marca a quebra como pendente; ela acontece quando o
-próximo caractere for escrito. Qualquer movimento explícito (`APR`, `APD`, `APF`, `APS`, `ACPS`, `SDP`, `CS`)
-cancela a pendência.
+**Fix:** after a character is written, advancing only marks the wrap as pending; it happens when the next
+character is written. Any explicit movement (`APR`, `APD`, `APF`, `APS`, `ACPS`, `SDP`, `CS`) cancels it.
 
-Base normativa: ARIB TR-B14 §4.4.4 descreve a quebra ligada à exibição do caractere seguinte. Não confirmado
-no texto da ABNT NBR 15606-1 (não disponível no projeto); validado contra stream real da Globo.
+Normative basis: ARIB TR-B14 §4.4.4 ties the wrap to displaying the following character. Not confirmed in the
+ABNT NBR 15606-1 text (not available to the project); validated against a real Globo stream.
 
-Teste: `ctest --test-dir build` (`tests/test_caption_layout.cpp`).
+Test: `ctest --test-dir build` (`tests/test_caption_layout.cpp`).
 
-Quando o upstream corrigir a issue, remova o `PATCH_COMMAND` do `CMakeLists.txt` e atualize o `GIT_TAG`.
+Once upstream fixes the issue, remove the `PATCH_COMMAND` from `CMakeLists.txt` (and the patch source from the
+Flatpak manifest) and update the `GIT_TAG`.

@@ -20,4 +20,4 @@ flatpak run --user org.flatpak.Builder \
 flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
     "$ROOT/flatpak-repo" "$BUNDLE" "$APP_ID"
 
-echo "Pacote gerado: $BUNDLE"
+echo "Bundle created: $BUNDLE"
