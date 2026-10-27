@@ -34,6 +34,13 @@ void CaptionView::setVideoFrame(const QImage& frame, double pixelAspect) {
     update();
 }
 
+void CaptionView::setHint(const QString& hint) {
+    if (hint_ == hint)
+        return;
+    hint_ = hint;
+    update();
+}
+
 void CaptionView::captionsChanged() {
     canvasDirty_ = true;
     update();
@@ -114,6 +121,15 @@ void CaptionView::paintEvent(QPaintEvent*) {
         p.setPen(QPen(QColor(40, 200, 230), 1));
         for (const auto& region : engine_->regions())
             p.drawRect(mapPlane(region.rect));
+    }
+
+    if (!hint_.isEmpty()) {
+        QFont hintFont = font();
+        hintFont.setPointSizeF(hintFont.pointSizeF() * 1.2);
+        p.setFont(hintFont);
+        p.setPen(QColor(200, 200, 200));
+        p.drawText(screen, Qt::AlignCenter | Qt::TextWordWrap, hint_);
+        p.setFont(small);
     }
 
     if (!signalText_.isEmpty()) {

@@ -571,6 +571,11 @@ void MainWindow::refresh() {
         color = QColor(40, 200, 80);
     }
     view_->setSignalState(state, color);
+    view_->setHint(sourceActive() || fileMode()
+                       ? QString()
+                       : QString("Clique em \"Conectar\" para escutar UDP na porta %1\n"
+                                 "ou em \"Abrir .ts…\" para reproduzir um arquivo.")
+                             .arg(portSpin_->value()));
     stateLabel_->setText(QString("<b style='color:%1'>●</b> %2").arg(color.name(), state));
     rateLabel_->setText(QString("  %1 pkt/s · %2 · %3")
                             .arg(packetsPerSecond_, 0, 'f', 0)
@@ -642,7 +647,7 @@ void MainWindow::rebuildValidationTree() {
             switch (rule->severity) {
                 case Severity::Error: status = "ERRO"; color = QColor(208, 48, 48); break;
                 case Severity::Warning: status = "AVISO"; color = QColor(192, 128, 0); break;
-                case Severity::Info: status = "INFO"; color = QColor(60, 110, 200); break;
+                case Severity::Info: status = "INFO"; color = QColor(90, 150, 240); break;
             }
         } else if (rule->checks > 0) {
             status = "OK";

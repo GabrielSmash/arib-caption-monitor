@@ -21,6 +21,7 @@ public:
     void setVideoFrame(const QImage& frame, double pixelAspect);
     void clearVideo();
     void captionsChanged();
+    void setHint(const QString& hint);  // centered guidance while nothing is playing
 
     QSize sizeHint() const override { return {960, 540}; }
     QSize minimumSizeHint() const override { return {320, 180}; }
@@ -40,6 +41,7 @@ private:
     QImage scaledCanvas_;
     bool canvasDirty_ = true;
     double pixelAspect_ = 1.0;
+    QString hint_;
     QString signalText_;
     QColor signalColor_;
 };

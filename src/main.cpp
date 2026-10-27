@@ -3,8 +3,44 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QMessageBox>
+#include <QPalette>
 #include <QPixmap>
+#include <QStyleFactory>
 #include <QTimer>
+
+namespace {
+
+// The monitor always uses a dark theme (video-oriented tool), independent of the desktop's theme.
+void applyDarkTheme(QApplication& app) {
+    app.setStyle(QStyleFactory::create("Fusion"));
+    QPalette p;
+    const QColor window(45, 45, 48);
+    const QColor base(30, 30, 32);
+    const QColor text(225, 225, 225);
+    const QColor disabled(120, 120, 120);
+    const QColor accent(42, 130, 218);
+    p.setColor(QPalette::Window, window);
+    p.setColor(QPalette::WindowText, text);
+    p.setColor(QPalette::Base, base);
+    p.setColor(QPalette::AlternateBase, window);
+    p.setColor(QPalette::ToolTipBase, base);
+    p.setColor(QPalette::ToolTipText, text);
+    p.setColor(QPalette::PlaceholderText, disabled);
+    p.setColor(QPalette::Text, text);
+    p.setColor(QPalette::Button, QColor(55, 55, 58));
+    p.setColor(QPalette::ButtonText, text);
+    p.setColor(QPalette::BrightText, Qt::red);
+    p.setColor(QPalette::Link, accent);
+    p.setColor(QPalette::Highlight, accent);
+    p.setColor(QPalette::HighlightedText, Qt::white);
+    p.setColor(QPalette::Mid, QColor(70, 70, 74));
+    p.setColor(QPalette::Dark, QColor(25, 25, 27));
+    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
+        p.setColor(QPalette::Disabled, role, disabled);
+    app.setPalette(p);
+}
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
     // Qt 6.10's PipeWire audio backend does not list Bluetooth outputs and reports the wrong default device;
@@ -17,6 +53,7 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationName("arib-caption-monitor");
     QApplication::setApplicationVersion(APP_VERSION);
     QGuiApplication::setDesktopFileName(APP_ID);  // window icon/grouping on Wayland
+    applyDarkTheme(app);
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Monitor de legendas ARIB (ABNT NBR 15606-1) recebidas por MPEG-TS/UDP");
@@ -44,9 +81,11 @@ int main(int argc, char* argv[]) {
         window.showAnalysisTab(parser.value(tabOption).toInt());
     window.show();
     const QString file = parser.isSet(fileOption) ? parser.value(fileOption) : parser.positionalArguments().value(0);
+    // The app opens idle and the user chooses UDP or a file in the window. A file passed by the desktop
+    // ("Open with") or an explicit --port (used by tests) starts right away.
     if (!file.isEmpty())
         window.openFile(file);
-    else
+    else if (parser.isSet(portOption))
         window.startReceiving();
 
     if (parser.isSet(snapshotOption)) {

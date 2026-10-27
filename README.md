@@ -27,7 +27,7 @@ broadcast system.
   shows its **source** — without the ABNT NBR 15606-1 text, rules from Japanese operation (ARIB TR-B14) are
   **warnings**, not errors. Severity, failures/checks count and the latest occurrences.
 
-The user interface is in Portuguese.
+The user interface is in Portuguese and uses a dark theme.
 
 ## Installation (any Linux distribution)
 
@@ -50,9 +50,14 @@ repository releases. It works on Ubuntu, Debian, Fedora, Mint, Arch, etc.
    ```
 4. Open it from the application menu (**ARIB Caption Monitor**) or from the terminal:
    ```bash
-   flatpak run io.github.gabrielsmash.AribCaptionMonitor               # listens on UDP (saved port, default 1526)
-   flatpak run io.github.gabrielsmash.AribCaptionMonitor recording.ts  # plays a file
+   flatpak run io.github.gabrielsmash.AribCaptionMonitor
    ```
+
+The app opens idle and you choose the source in the window:
+
+- **Conectar** listens on UDP (set the port, and optionally a multicast group, in the toolbar; default port 1526).
+- **Abrir .ts…** plays a file. You can also drag a `.ts` file onto the window, or use "Open with" in the
+  file manager.
 
 To update, install the `.flatpak` of the new version the same way. To remove:
 `flatpak uninstall io.github.gabrielsmash.AribCaptionMonitor`.
@@ -94,16 +99,25 @@ ctest --test-dir build        # layout (line wrapping) and validation, with real
 ### Usage
 
 ```bash
-./build/arib-caption-monitor                        # saved port (default 1526), unicast
-./build/arib-caption-monitor -p 1526 -m 239.1.1.1   # multicast
-./build/arib-caption-monitor --file recording.ts    # file (or the "Abrir .ts…" button / drag it onto the window)
+./build/arib-caption-monitor
 ```
 
+Same as the installed app: it opens idle and the source (UDP or file) is chosen in the window.
 The stream can be plain UDP or RTP (auto-detected). The caption PID is picked from the PMT
 (stream_type 0x06 with component_tag 0x30–0x37 or data_component_id 0x0008).
 
-For automated tests without a display: `QT_QPA_PLATFORM=offscreen ./build/arib-caption-monitor --tab 1 --snapshot shot.png --snapshot-after 10`
-(`--tab`: 0 MPEG-TS, 1 Validation, 2 Commands, 3 Log).
+### Command-line options (development and tests)
+
+Not needed for normal use; they let scripts and tests start a source directly.
+
+| Option | Effect |
+|---|---|
+| `-p, --port <port>` / `-m, --multicast <group>` | Start listening on UDP right away |
+| `-f, --file <file.ts>` (or the file as argument) | Start playing a file right away |
+| `--tab <0-3>` | Panel tab to show (0 MPEG-TS, 1 Validation, 2 Commands, 3 Log) |
+| `--snapshot <file.png> [--snapshot-after <s>]` | Save a screenshot of the window and quit |
+
+Example without a display: `QT_QPA_PLATFORM=offscreen ./build/arib-caption-monitor --file test.ts --tab 1 --snapshot shot.png --snapshot-after 10`
 
 ## Known limitations
 
