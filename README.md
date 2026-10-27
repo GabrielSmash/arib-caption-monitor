@@ -4,10 +4,10 @@ Linux desktop monitor (Qt6) for ARIB captions in the Brazilian standard (ABNT NB
 received as MPEG-TS over UDP or read from `.ts` files, to test captions before sending them to the
 broadcast system.
 
-> **Current version: 1.0.0** — the first version installable on any Linux distribution.
+> **Current version: 1.1.0** — dark theme, and the app opens idle so you choose UDP or a file in the window.
 >
-> ⬇️ **[Download arib-caption-monitor-1.0.0.flatpak](https://github.com/GabrielSmash/arib-caption-monitor/releases/download/v1.0.0/arib-caption-monitor-1.0.0.flatpak)**
-> · [release notes](https://github.com/GabrielSmash/arib-caption-monitor/releases/tag/v1.0.0) · [all releases](https://github.com/GabrielSmash/arib-caption-monitor/releases)
+> ⬇️ **[Download arib-caption-monitor-1.1.0.flatpak](https://github.com/GabrielSmash/arib-caption-monitor/releases/download/v1.1.0/arib-caption-monitor-1.1.0.flatpak)**
+> · [release notes](https://github.com/GabrielSmash/arib-caption-monitor/releases/tag/v1.1.0) · [all releases](https://github.com/GabrielSmash/arib-caption-monitor/releases)
 >
 > How to install: see [Installation](#installation-any-linux-distribution).
 
@@ -37,7 +37,7 @@ repository releases. It works on Ubuntu, Debian, Fedora, Mint, Arch, etc.
 1. Download the `.flatpak` from the [latest release](https://github.com/GabrielSmash/arib-caption-monitor/releases/latest).
    From the terminal (the repository is private, so the download uses your GitHub CLI login):
    ```bash
-   gh release download v1.0.0 -R GabrielSmash/arib-caption-monitor -p '*.flatpak'
+   gh release download v1.1.0 -R GabrielSmash/arib-caption-monitor -p '*.flatpak'
    ```
 2. Make sure Flatpak and Flathub are set up (most distributions ship them; otherwise see
    https://flathub.org/setup):
@@ -46,7 +46,7 @@ repository releases. It works on Ubuntu, Debian, Fedora, Mint, Arch, etc.
    ```
 3. Install the downloaded file (the first time, it also downloads the KDE/Qt runtime from Flathub):
    ```bash
-   flatpak install --user arib-caption-monitor-1.0.0.flatpak
+   flatpak install --user arib-caption-monitor-1.1.0.flatpak
    ```
 4. Open it from the application menu (**ARIB Caption Monitor**) or from the terminal:
    ```bash

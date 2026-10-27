@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(arib-caption-monitor VERSION 1.0.0 LANGUAGES CXX)
+project(arib-caption-monitor VERSION 1.1.0 LANGUAGES CXX)
 
 set(APP_ID io.github.gabrielsmash.AribCaptionMonitor)
 option(ARIBMON_BUILD_TESTS "Build the tests" ON)
