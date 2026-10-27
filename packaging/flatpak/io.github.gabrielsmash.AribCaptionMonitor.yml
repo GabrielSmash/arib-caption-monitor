@@ -1,0 +1,52 @@
+app-id: io.github.gabrielsmash.AribCaptionMonitor
+runtime: org.kde.Platform
+runtime-version: '6.10'
+sdk: org.kde.Sdk
+command: arib-caption-monitor
+
+finish-args:
+  - --share=network        # UDP reception
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio    # audio (the app uses Qt's PulseAudio backend, served by PipeWire)
+  - --device=dri
+  # Recordings are usually opened from the home folder or removable drives; the file dialog also works
+  # through the portal for anything else.
+  - --filesystem=home:ro
+  - --filesystem=/media:ro
+  - --filesystem=/run/media:ro
+
+cleanup:
+  - /include
+  - /lib/cmake
+  - /lib/pkgconfig
+  - '*.a'
+
+modules:
+  - name: arib-caption-monitor
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DARIBMON_BUILD_TESTS=OFF
+      # Network access is not available while building: use the libaribcaption source fetched below.
+      # FetchContent skips its PATCH_COMMAND for a local source, so the patch is applied here.
+      - -DFETCHCONTENT_SOURCE_DIR_LIBARIBCAPTION=/run/build/arib-caption-monitor/third_party/libaribcaption
+      - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - build
+          - .flatpak-builder
+          - flatpak-build
+          - flatpak-repo
+          - dist
+          - .git
+      - type: git
+        url: https://github.com/xqq/libaribcaption.git
+        commit: 37dde0f32652c32aa98bf92278944d1cfb2e7354
+        dest: third_party/libaribcaption
+      - type: patch
+        path: ../../patches/libaribcaption-deferred-wrap.patch
+        dest: third_party/libaribcaption

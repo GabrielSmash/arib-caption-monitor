@@ -34,6 +34,11 @@ void CaptionView::setVideoFrame(const QImage& frame, double pixelAspect) {
     update();
 }
 
+void CaptionView::captionsChanged() {
+    canvasDirty_ = true;
+    update();
+}
+
 void CaptionView::clearVideo() {
     video_ = QImage();
     update();
@@ -67,8 +72,11 @@ void CaptionView::paintEvent(QPaintEvent*) {
     }
 
     const QImage& canvas = engine_->screen();
-    p.setRenderHint(QPainter::SmoothPixmapTransform);
-    p.drawImage(screen, canvas);
+    if (canvasDirty_ || scaledCanvas_.size() != screen.size()) {
+        scaledCanvas_ = canvas.scaled(screen.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        canvasDirty_ = false;
+    }
+    p.drawImage(screen.topLeft(), scaledCanvas_);
 
     // Caption plane inside the canvas, mapped to widget coordinates.
     const QRect area = engine_->captionAreaInFrame();

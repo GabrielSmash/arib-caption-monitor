@@ -15,10 +15,14 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setOrganizationName("arib-caption-monitor");
     QApplication::setApplicationName("arib-caption-monitor");
+    QApplication::setApplicationVersion(APP_VERSION);
+    QGuiApplication::setDesktopFileName(APP_ID);  // window icon/grouping on Wayland
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Monitor de legendas ARIB (ABNT NBR 15606-1) recebidas por MPEG-TS/UDP");
     parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addPositionalArgument("arquivo", "Arquivo MPEG-TS a reproduzir (igual a --file).", "[arquivo.ts]");
     QCommandLineOption portOption({"p", "port"}, "Porta UDP de recepção.", "porta");
     QCommandLineOption groupOption({"m", "multicast"}, "Grupo multicast (opcional).", "endereço");
     QCommandLineOption snapshotOption("snapshot", "Salva uma captura da janela e encerra (teste).", "arquivo.png");
@@ -39,8 +43,9 @@ int main(int argc, char* argv[]) {
     if (parser.isSet(tabOption))
         window.showAnalysisTab(parser.value(tabOption).toInt());
     window.show();
-    if (parser.isSet(fileOption))
-        window.openFile(parser.value(fileOption));
+    const QString file = parser.isSet(fileOption) ? parser.value(fileOption) : parser.positionalArguments().value(0);
+    if (!file.isEmpty())
+        window.openFile(file);
     else
         window.startReceiving();
 

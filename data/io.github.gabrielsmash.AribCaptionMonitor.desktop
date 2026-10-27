@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=ARIB Caption Monitor
+GenericName=Monitor de legendas ARIB
+Comment=Monitor de legendas ARIB (ABNT NBR 15606-1) em MPEG-TS por UDP ou arquivo
+Exec=arib-caption-monitor %f
+Icon=io.github.gabrielsmash.AribCaptionMonitor
+Terminal=false
+Categories=AudioVideo;Video;
+Keywords=ARIB;ISDB;SBTVD;legenda;caption;closed caption;MPEG-TS;UDP;
+MimeType=video/mp2t;
+StartupWMClass=arib-caption-monitor

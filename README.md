@@ -19,7 +19,45 @@ recebidas em MPEG-TS por UDP.
   Cada regra mostra a **fonte** — sem o texto da ABNT NBR 15606-1, regras da operação japonesa
   (ARIB TR-B14) são **avisos**, não erros. Severidade, contagem de falhas/verificações e últimas ocorrências.
 
-## Dependências
+## Instalação (qualquer distribuição Linux)
+
+O app é distribuído como **Flatpak**: um arquivo `arib-caption-monitor-<versão>.flatpak` publicado nas
+releases do repositório. Funciona em Ubuntu, Debian, Fedora, Mint, Arch etc.
+
+1. Tenha o Flatpak e o Flathub configurados (já vêm na maioria das distros; senão,
+   veja https://flathub.org/setup):
+   ```bash
+   flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+   ```
+2. Instale o arquivo baixado (na primeira vez ele baixa também o runtime KDE/Qt do Flathub):
+   ```bash
+   flatpak install --user arib-caption-monitor-1.0.0.flatpak
+   ```
+3. Abra pelo menu de aplicativos (**ARIB Caption Monitor**) ou pelo terminal:
+   ```bash
+   flatpak run io.github.gabrielsmash.AribCaptionMonitor            # escuta UDP (porta salva, padrão 1526)
+   flatpak run io.github.gabrielsmash.AribCaptionMonitor arquivo.ts # reproduz um arquivo
+   ```
+
+Para atualizar, instale o `.flatpak` da versão nova da mesma forma. Para remover:
+`flatpak uninstall io.github.gabrielsmash.AribCaptionMonitor`.
+
+Permissões do pacote: rede (recepção UDP), áudio, vídeo/GPU e **leitura** da pasta pessoal e de
+`/media` e `/run/media` (pendrives). Arquivos em outros lugares podem ser abertos pelo botão "Abrir .ts…".
+
+### Gerar o pacote
+
+```bash
+flatpak install --user flathub org.flatpak.Builder   # uma vez
+./packaging/flatpak/build.sh                         # gera dist/arib-caption-monitor-<versão>.flatpak
+```
+
+O build usa o runtime `org.kde.Platform//6.10` (Qt 6.10 e FFmpeg; H.264/AAC vêm da extensão
+`org.freedesktop.Platform.codecs-extra`, instalada automaticamente).
+
+## Desenvolvimento
+
+### Dependências
 
 ```bash
 sudo apt install build-essential cmake pkg-config qt6-base-dev qt6-multimedia-dev libfreetype-dev libfontconfig-dev fonts-dejavu \
@@ -30,7 +68,7 @@ A libaribcaption **não** precisa estar instalada: o CMake baixa uma versão fix
 `patches/libaribcaption-deferred-wrap.patch` e compila estática junto com o app (precisa de `git` e internet
 no primeiro `cmake`). Detalhes em `patches/README.md`.
 
-## Build
+### Build
 
 ```bash
 cmake -S . -B build
@@ -38,7 +76,7 @@ cmake --build build -j$(nproc)
 ctest --test-dir build        # layout (quebra de linha) e validação, com vetores reais (Globo, SkylarBox)
 ```
 
-## Uso
+### Uso
 
 ```bash
 ./build/arib-caption-monitor                  # porta salva (padrão 1526), unicast

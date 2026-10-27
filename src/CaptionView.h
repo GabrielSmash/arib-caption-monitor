@@ -20,6 +20,7 @@ public:
     void setSignalState(const QString& text, const QColor& color);
     void setVideoFrame(const QImage& frame, double pixelAspect);
     void clearVideo();
+    void captionsChanged();
 
     QSize sizeHint() const override { return {960, 540}; }
     QSize minimumSizeHint() const override { return {320, 180}; }
@@ -34,6 +35,10 @@ private:
     bool overlays_ = true;
     QRect displayArea_;
     QImage video_;
+    // Caption canvas already scaled to the screen: rescaling the full-HD canvas on every video frame
+    // costs more than a frame interval on large windows.
+    QImage scaledCanvas_;
+    bool canvasDirty_ = true;
     double pixelAspect_ = 1.0;
     QString signalText_;
     QColor signalColor_;

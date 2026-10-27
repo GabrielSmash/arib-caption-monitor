@@ -111,7 +111,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         appendLog(pid >= 0 ? QString("PID de legenda selecionado: %1").arg(hexPid(pid))
                            : QString("Nenhum PID de legenda na PMT"));
     });
-    connect(&engine_, &CaptionEngine::screenChanged, view_, qOverload<>(&QWidget::update));
+    connect(&engine_, &CaptionEngine::screenChanged, view_, &CaptionView::captionsChanged);
     connect(&engine_, &CaptionEngine::captionDecoded, this, &MainWindow::onCaptionDecoded);
     connect(&engine_, &CaptionEngine::logMessage, this, &MainWindow::appendLog);
 
@@ -137,7 +137,7 @@ bool MainWindow::initialize(QString* error) {
 }
 
 void MainWindow::buildUi() {
-    setWindowTitle("ARIB Caption Monitor — ABNT NBR 15606-1");
+    setWindowTitle(QString("ARIB Caption Monitor %1 — ABNT NBR 15606-1").arg(APP_VERSION));
     QSettings settings;
 
     auto* toolbar = addToolBar("Conexão");

@@ -29,7 +29,7 @@ constexpr int kSampleRate = 48000;
 constexpr int kBytesPerSample = 4;  // S16 stereo
 constexpr int kSinkBufferMs = 300;
 constexpr qint64 kStartDelayMs = 150;      // absorbs network jitter before the first frame
-constexpr double kStartWindowSeconds = 0.2;  // data this much older than the newest is skipped at (re)start
+constexpr double kStartWindowSeconds = 0.3;  // slack kept behind the newest data when the clock (re)starts
 constexpr qint64 kAudioLeadMs = 150;       // audio written this far ahead keeps the sink from underrunning
 constexpr qint64 kLateResetMs = 1000;      // falling this far behind re-bases the clock
 constexpr qint64 kFutureResetMs = 5000;    // a timestamp jump this far ahead re-bases the clock
@@ -504,10 +504,19 @@ void MediaPlayer::present() {
         if (!clockSet_) {
             if (video_.empty() && audio_.empty())
                 return;
-            // Start from the most recent data. What piled up while FFmpeg analysed the stream (or while the
-            // presentation fell behind) is skipped; otherwise that time would become permanent latency and
-            // video would lag the captions, which are shown as soon as they arrive.
-            const double newest = qMax(video_.empty() ? -1e18 : video_.back().pts, audio_.empty() ? -1e18 : audio_.back().pts);
+            // With video, wait for its first frame (audio is usually muxed ahead of it), unless enough audio
+            // piled up to show the video is not coming.
+            if (info_.hasVideo && video_.empty() && audio_.size() < kMaxAudioChunks / 2)
+                return;
+            // Start from recent data: what piled up while FFmpeg analysed the stream (or while the presentation
+            // fell behind) is skipped, otherwise it would become permanent latency and the video would lag the
+            // captions, which are shown as soon as they arrive. The stream that is further behind (usually the
+            // video, which also has decoder delay) sets the start, so it keeps some slack.
+            double newest;
+            if (!video_.empty() && !audio_.empty())
+                newest = qMin(video_.back().pts, audio_.back().pts);
+            else
+                newest = video_.empty() ? audio_.back().pts : video_.back().pts;
             basePts_ = newest - kStartWindowSeconds;
             while (!audio_.empty() && audio_.front().pts < basePts_)
                 audio_.pop_front();

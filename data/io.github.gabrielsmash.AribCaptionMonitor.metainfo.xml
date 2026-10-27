@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.gabrielsmash.AribCaptionMonitor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <name>ARIB Caption Monitor</name>
+  <summary>Monitor de legendas ARIB brasileiras em MPEG-TS</summary>
+  <description>
+    <p>
+      Recebe MPEG-TS por UDP (unicast, multicast ou RTP) ou reproduz arquivos .ts/.m2ts e exibe as legendas
+      ARIB no padrão brasileiro (ABNT NBR 15606-1 / ISDB-Tb) como um receptor, junto com vídeo e áudio.
+    </p>
+    <ul>
+      <li>Painel com PAT, PMT, SDT, PIDs, bitrate e erros de continuidade</li>
+      <li>Comandos ARIB de cada legenda e posicionamento na tela</li>
+      <li>Validação automática do stream de legenda, com a fonte de cada regra</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.gabrielsmash.AribCaptionMonitor.desktop</launchable>
+  <developer id="io.github.gabrielsmash">
+    <name>Gabriel Oliveira</name>
+  </developer>
+  <url type="homepage">https://github.com/GabrielSmash/arib-caption-monitor</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-10-27"/>
+  </releases>
+</component>

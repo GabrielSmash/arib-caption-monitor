@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.25)
-project(arib-caption-monitor VERSION 0.1.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.28)
+project(arib-caption-monitor VERSION 1.0.0 LANGUAGES CXX)
+
+set(APP_ID io.github.gabrielsmash.AribCaptionMonitor)
+option(ARIBMON_BUILD_TESTS "Build the tests" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,6 +29,7 @@ FetchContent_Declare(libaribcaption
     PATCH_COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/libaribcaption-deferred-wrap.patch
     UPDATE_DISCONNECTED TRUE
     SYSTEM
+    EXCLUDE_FROM_ALL  # linked statically; its headers and library are not installed with the app
 )
 FetchContent_MakeAvailable(libaribcaption)
 
@@ -51,6 +55,7 @@ qt_add_executable(arib-caption-monitor
 )
 
 target_compile_options(arib-caption-monitor PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_definitions(arib-caption-monitor PRIVATE APP_VERSION="${PROJECT_VERSION}" APP_ID="${APP_ID}")
 
 target_link_libraries(arib-caption-monitor PRIVATE
     Qt6::Core
@@ -60,6 +65,16 @@ target_link_libraries(arib-caption-monitor PRIVATE
     aribcaption::aribcaption
     PkgConfig::FFMPEG
 )
+
+include(GNUInstallDirs)
+install(TARGETS arib-caption-monitor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES data/${APP_ID}.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES data/${APP_ID}.metainfo.xml DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+install(FILES data/${APP_ID}.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+
+if(NOT ARIBMON_BUILD_TESTS)
+    return()
+endif()
 
 enable_testing()
 add_executable(test-caption-layout tests/test_caption_layout.cpp)
