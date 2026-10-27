@@ -1,7 +1,15 @@
 # ARIB Caption Monitor
 
 Monitor desktop (Linux, Qt6) de legendas ARIB no padrão brasileiro (ABNT NBR 15606-1 / ISDB-Tb)
-recebidas em MPEG-TS por UDP.
+recebidas em MPEG-TS por UDP ou lidas de arquivos `.ts`, para testar as legendas antes de enviá-las ao
+sistema de transmissão.
+
+> **Versão atual: 1.0.0** — a primeira versão instalável em qualquer distribuição Linux.
+>
+> ⬇️ **[Baixar arib-caption-monitor-1.0.0.flatpak](https://github.com/GabrielSmash/arib-caption-monitor/releases/download/v1.0.0/arib-caption-monitor-1.0.0.flatpak)**
+> · [notas da versão](https://github.com/GabrielSmash/arib-caption-monitor/releases/tag/v1.0.0) · [todas as versões](https://github.com/GabrielSmash/arib-caption-monitor/releases)
+>
+> Como instalar: veja [Instalação](#instalação-qualquer-distribuição-linux).
 
 - Recebe MPEG-TS por UDP (unicast/multicast, RTP detectado) **ou reproduz arquivos** `.ts`/`.m2ts`
   (188, 192 e 204 bytes) em tempo real, com o ritmo dado pelo PCR (ou PTS, em arquivos só de legenda).
@@ -24,16 +32,21 @@ recebidas em MPEG-TS por UDP.
 O app é distribuído como **Flatpak**: um arquivo `arib-caption-monitor-<versão>.flatpak` publicado nas
 releases do repositório. Funciona em Ubuntu, Debian, Fedora, Mint, Arch etc.
 
-1. Tenha o Flatpak e o Flathub configurados (já vêm na maioria das distros; senão,
+1. Baixe o `.flatpak` da [versão mais recente](https://github.com/GabrielSmash/arib-caption-monitor/releases/latest). Pelo terminal (o repositório é privado,
+   então o download usa o seu login do GitHub CLI):
+   ```bash
+   gh release download v1.0.0 -R GabrielSmash/arib-caption-monitor -p '*.flatpak'
+   ```
+2. Tenha o Flatpak e o Flathub configurados (já vêm na maioria das distros; senão,
    veja https://flathub.org/setup):
    ```bash
    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
    ```
-2. Instale o arquivo baixado (na primeira vez ele baixa também o runtime KDE/Qt do Flathub):
+3. Instale o arquivo baixado (na primeira vez ele baixa também o runtime KDE/Qt do Flathub):
    ```bash
    flatpak install --user arib-caption-monitor-1.0.0.flatpak
    ```
-3. Abra pelo menu de aplicativos (**ARIB Caption Monitor**) ou pelo terminal:
+4. Abra pelo menu de aplicativos (**ARIB Caption Monitor**) ou pelo terminal:
    ```bash
    flatpak run io.github.gabrielsmash.AribCaptionMonitor            # escuta UDP (porta salva, padrão 1526)
    flatpak run io.github.gabrielsmash.AribCaptionMonitor arquivo.ts # reproduz um arquivo
